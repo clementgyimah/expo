@@ -2,7 +2,9 @@
 public class ModuleRegistry: Sequence {
   public typealias Element = ModuleHolder
 
-  private weak var appContext: AppContext?
+  private var appContext: AppContext
+
+  private var definitionsRegistry: [String: ModuleDefinition] = [:]
 
   private var registry: [String: ModuleHolder] = [:]
 
@@ -11,23 +13,19 @@ public class ModuleRegistry: Sequence {
   }
 
   /**
-   Registers a single module in the registry.
+   Registers a module type.
    */
-  public func register(module: AnyModule) {
-    let holder = ModuleHolder(module: module)
-    registry[holder.name] = holder
+  public func register(moduleType: AnyModule.Type) {
+    let definition = moduleType.definition().withType(moduleType)
+    definitionsRegistry[definition.name] = definition
   }
 
   /**
    Registers modules exported by given modules provider.
    */
   public func register(fromProvider provider: ModulesProviderProtocol) {
-    guard let appContext = appContext else {
-      // TODO: (@tsapeta) App context is deallocated, throw an error?
-      return
-    }
     provider.getModuleClasses().forEach { moduleType in
-      register(module: moduleType.init(appContext: appContext))
+      register(moduleType: moduleType)
     }
   }
 
@@ -45,7 +43,7 @@ public class ModuleRegistry: Sequence {
   }
 
   public func get(moduleHolderForName moduleName: String) -> ModuleHolder? {
-    return registry[moduleName]
+    return registry[moduleName] ?? createInstance(moduleName)
   }
 
   public func get(moduleWithName moduleName: String) -> AnyModule? {
@@ -66,5 +64,14 @@ public class ModuleRegistry: Sequence {
     forEach { holder in
       holder.post(event: event, payload: payload)
     }
+  }
+
+  // MARK: privates
+
+  private func createInstance(_ name: String) -> ModuleHolder? {
+    if let definition = definitionsRegistry[name] {
+      registry[name] = ModuleHolder(appContext: appContext, definition: definition)
+    }
+    return registry[name]
   }
 }

@@ -9,15 +9,20 @@ public protocol AnyDefinition {}
  of the module and what it exports to the JavaScript world.
  See `ModuleDefinitionBuilder` for more details on how to create it.
  */
-public struct ModuleDefinition: AnyDefinition {
-  let name: String?
+public class ModuleDefinition: AnyDefinition {
+  var type: AnyModule.Type?
+
+  let definedName: String?
   let methods: [String : AnyMethod]
   let constants: [String : Any?]
   let eventListeners: [EventListener]
   let viewManager: ViewManagerDefinition?
 
+  /**
+   Initializer that is called by the `ModuleDefinitionBuilder` results builder.
+   */
   init(definitions: [AnyDefinition]) {
-    self.name = definitions
+    self.definedName = definitions
       .compactMap { $0 as? ModuleNameDefinition }
       .last?
       .name
@@ -39,6 +44,22 @@ public struct ModuleDefinition: AnyDefinition {
     self.viewManager = definitions
       .compactMap { $0 as? ViewManagerDefinition }
       .last
+  }
+
+  /**
+   Defining the module name is optional, this property provides a fallback to the type name.
+   */
+  var name: String {
+    return self.definedName ?? String(describing: type)
+  }
+
+  /**
+   Sets the module type that the definition is associated with. We can't pass this in the initializer
+   as it's called by the results builder that doesn't have access to the type.
+   */
+  func withType(_ type: AnyModule.Type) -> Self {
+    self.type = type
+    return self
   }
 }
 

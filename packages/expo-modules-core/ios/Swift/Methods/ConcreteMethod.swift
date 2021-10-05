@@ -29,12 +29,14 @@ public class ConcreteMethod<Args, ReturnType>: AnyMethod {
     self.closure = closure
   }
 
-  public func call(args: [Any?], promise: Promise) {
+  public func call(module: AnyModule, args: [Any?], promise: Promise) {
     let takesPromise = self.takesPromise
     let returnedValue: ReturnType?
 
     do {
       var finalArgs = try castArguments(args)
+
+      finalArgs.insert(module, at: 0)
 
       if takesPromise {
         finalArgs.append(promise)
